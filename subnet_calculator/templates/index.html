@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SubnetLab — Advanced IP Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">⬡</div>
+      <div>
+        <div class="brand-name">SubnetLab</div>
+        <div class="brand-sub">IP Calculator</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active" data-tab="basic">
+        <span class="nav-icon">◈</span> Basic Subnet
+      </button>
+      <button class="nav-item" data-tab="split">
+        <span class="nav-icon">⊞</span> Split Subnet
+      </button>
+      <button class="nav-item" data-tab="vlsm">
+        <span class="nav-icon">◫</span> VLSM
+      </button>
+      <button class="nav-item" data-tab="batch">
+        <span class="nav-icon">≡</span> Batch Calc
+      </button>
+      <button class="nav-item" data-tab="overlap">
+        <span class="nav-icon">⊗</span> Overlap Detect
+      </button>
+      <button class="nav-item" data-tab="supernet">
+        <span class="nav-icon">⊕</span> Supernetting
+      </button>
+      <button class="nav-item" data-tab="lookup">
+        <span class="nav-icon">◎</span> IP Lookup
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="footer-label">IPv4 · CIDR · VLSM</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- Header -->
+    <header class="topbar">
+      <div class="topbar-title" id="tab-title">Basic Subnet Calculator</div>
+      <div class="topbar-hint" id="tab-hint">Enter a CIDR like 192.168.1.0/24</div>
+    </header>
+
+    <!-- ══════ TAB: BASIC ══════ -->
+    <section class="tab-panel active" id="tab-basic">
+      <div class="input-row">
+        <div class="field">
+          <label>Network / CIDR</label>
+          <input type="text" id="basic-cidr" placeholder="192.168.1.0/24" />
+        </div>
+        <button class="btn-primary" onclick="calcBasic()">Calculate</button>
+      </div>
+
+      <div id="basic-result" class="result-area hidden">
+        <div class="result-grid" id="basic-grid"></div>
+        <div class="binary-section">
+          <div class="binary-title">Binary Representation</div>
+          <div class="binary-row"><span class="binary-label">IP</span><code id="bin-ip"></code></div>
+          <div class="binary-row"><span class="binary-label">Mask</span><code id="bin-mask"></code></div>
+          <div class="binary-row"><span class="binary-label">Network</span><code id="bin-net"></code></div>
+        </div>
+        <div class="step-section" id="steps-section">
+          <div class="step-title">Step-by-Step Breakdown</div>
+          <div id="steps-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB: SPLIT ══════ -->
+    <section class="tab-panel" id="tab-split">
+      <div class="input-row">
+        <div class="field">
+          <label>Parent Network (CIDR)</label>
+          <input type="text" id="split-cidr" placeholder="10.0.0.0/8" />
+        </div>
+        <div class="field field-sm">
+          <label>Split into N subnets</label>
+          <input type="number" id="split-n" placeholder="4" min="2" max="256" />
+        </div>
+        <button class="btn-primary" onclick="calcSplit()">Split</button>
+      </div>
+      <div id="split-result" class="result-area hidden">
+        <div id="split-tree" class="tree-viz"></div>
+        <div class="table-wrap">
+          <table id="split-table" class="data-table">
+            <thead>
+              <tr><th>#</th><th>CIDR</th><th>Network</th><th>Broadcast</th><th>First Host</th><th>Last Host</th><th>Usable Hosts</th></tr>
+            </thead>
+            <tbody id="split-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB: VLSM ══════ -->
+    <section class="tab-panel" id="tab-vlsm">
+      <div class="input-row">
+        <div class="field">
+          <label>Address Pool (CIDR)</label>
+          <input type="text" id="vlsm-pool" placeholder="192.168.0.0/16" />
+        </div>
+        <button class="btn-primary" onclick="calcVLSM()">Allocate</button>
+      </div>
+      <div class="vlsm-requirements">
+        <div class="req-header">
+          <span>Subnet Requirements</span>
+          <button class="btn-add" onclick="addVlsmRow()">+ Add Row</button>
+        </div>
+        <div id="vlsm-rows">
+          <div class="vlsm-row">
+            <input type="text" placeholder="e.g. Engineering" class="vlsm-name"/>
+            <input type="number" placeholder="Hosts needed" class="vlsm-hosts" min="1"/>
+            <button class="btn-remove" onclick="removeVlsmRow(this)">✕</button>
+          </div>
+          <div class="vlsm-row">
+            <input type="text" placeholder="e.g. Marketing" class="vlsm-name"/>
+            <input type="number" placeholder="Hosts needed" class="vlsm-hosts" min="1"/>
+            <button class="btn-remove" onclick="removeVlsmRow(this)">✕</button>
+          </div>
+        </div>
+      </div>
+      <div id="vlsm-result" class="result-area hidden">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Dept / Name</th><th>Required</th><th>CIDR</th><th>Network</th><th>Broadcast</th><th>First Host</th><th>Last Host</th><th>Usable</th></tr>
+            </thead>
+            <tbody id="vlsm-tbody"></tbody>
+          </table>
+        </div>
+        <div id="vlsm-tree" class="tree-viz"></div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB: BATCH ══════ -->
+    <section class="tab-panel" id="tab-batch">
+      <div class="field">
+        <label>Enter CIDRs (one per line)</label>
+        <textarea id="batch-input" rows="6" placeholder="10.0.0.0/8&#10;172.16.0.0/12&#10;192.168.1.0/24"></textarea>
+      </div>
+      <div class="input-row">
+        <button class="btn-primary" onclick="calcBatch()">Calculate All</button>
+        <button class="btn-secondary" onclick="exportBatchCSV()">Export CSV</button>
+      </div>
+      <div id="batch-result" class="result-area hidden">
+        <div class="table-wrap">
+          <table class="data-table" id="batch-table">
+            <thead>
+              <tr><th>CIDR</th><th>Network</th><th>Broadcast</th><th>Mask</th><th>First Host</th><th>Last Host</th><th>Usable Hosts</th><th>Class</th><th>Private?</th></tr>
+            </thead>
+            <tbody id="batch-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB: OVERLAP ══════ -->
+    <section class="tab-panel" id="tab-overlap">
+      <div class="field">
+        <label>Enter CIDRs to check (one per line)</label>
+        <textarea id="overlap-input" rows="6" placeholder="192.168.1.0/24&#10;192.168.1.128/25&#10;10.0.0.0/8"></textarea>
+      </div>
+      <div class="input-row">
+        <button class="btn-primary" onclick="calcOverlap()">Check Overlaps</button>
+      </div>
+      <div id="overlap-result" class="result-area hidden">
+        <div id="overlap-status"></div>
+        <div id="overlap-list"></div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB: SUPERNET ══════ -->
+    <section class="tab-panel" id="tab-supernet">
+      <div class="field">
+        <label>Enter networks to aggregate (one per line)</label>
+        <textarea id="supernet-input" rows="6" placeholder="192.168.0.0/24&#10;192.168.1.0/24&#10;192.168.2.0/24"></textarea>
+      </div>
+      <div class="input-row">
+        <button class="btn-primary" onclick="calcSupernet()">Aggregate</button>
+      </div>
+      <div id="supernet-result" class="result-area hidden">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Supernet CIDR</th><th>Network</th><th>Mask</th><th>Total Addresses</th></tr></thead>
+            <tbody id="supernet-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB: LOOKUP ══════ -->
+    <section class="tab-panel" id="tab-lookup">
+      <div class="input-row">
+        <div class="field">
+          <label>IP Address</label>
+          <input type="text" id="lookup-ip" placeholder="192.168.1.55" />
+        </div>
+        <div class="field">
+          <label>Subnet (CIDR)</label>
+          <input type="text" id="lookup-cidr" placeholder="192.168.1.0/24" />
+        </div>
+        <button class="btn-primary" onclick="calcLookup()">Check</button>
+      </div>
+      <div id="lookup-result" class="result-area hidden">
+        <div id="lookup-status"></div>
+      </div>
+    </section>
+
+    <div id="error-toast" class="error-toast hidden"></div>
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
